@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { body, param, validationResult, query } = require("express-validator");
+const { body, validationResult } = require("express-validator");
 
 const redis = require("redis");
 const client = redis.createClient();
@@ -30,15 +30,14 @@ router.post("/register/", body("mail").exists(), body("user_name").exists(), bod
   } else return res.status(401).json({error: "user already exists"})
 });
 
-router.get("/login/", async ({headers: {mail, password} }, res) => {
+router.get("/login/", async ({headers: {userToken = loggedUserToken, mail, password} }, res) => {
   if(await client.getAsync(mail) !== null) {
-    if(loggedUserToken === "undefined" && await client.getAsync(loggedUserToken) === null) {
+    if(await client.getAsync(userToken) === null) {
       const user = JSON.parse(await client.getAsync(mail));
       if(user.password === password){
-        const token = tokgen.generate();
-        loggedUserToken = token;
-        client.set(token, JSON.stringify(mail), redis.print);
-        return res.status(201).json({ token, debug: user })
+        loggedUserToken = tokgen.generate();
+        client.set(loggedUserToken, JSON.stringify(mail), redis.print);
+        return res.status(201).json({ loggedUserToken, debug: user })
       } else return res.status(401).json({error: "Invalid password"})
     } else return res.status(403).json({error: "user already logged", loggedUserToken})
   } return res.status(404).json({error: "user not found"})
