@@ -53,4 +53,3 @@ router.delete("/logout/", async ({ headers: { token } }, res) =>{
 })
 
 module.exports = router;
-module.exports = loggedUserToken;
