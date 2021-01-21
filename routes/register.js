@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
 
+const { body, param, validationResult, query } = require("express-validator");
+
 const redis = require("redis");
 const client = redis.createClient();
 
 var bluebird = require("bluebird");
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
-
-const { body, param, validationResult, query } = require("express-validator");
 
 const TokenGenerator = require("uuid-token-generator");
 const tokgen = new TokenGenerator(256, TokenGenerator.BASE62);
@@ -19,7 +19,10 @@ const handeErrors = (req, res, next) => {
   else next();
 };
 
-router.post("/register/", body("user_name").exists, body("password").exists, handeErrors, async ({ body: { user_name, mail, password } }, res) => {
+let loggedUserToken = "undefined";
+
+router.post("/register/", body("mail").exists(), body("user_name").exists(), body("password").exists(), handeErrors, async ({ body: { mail, user_name, password } }, res) => {
+  console.log("ciao2")
   if(await client.getAsync(mail) === null){
     client.set(mail, JSON.stringify({ user_name, password }), redis.print);
     const user = JSON.parse(await client.getAsync(mail));
@@ -27,17 +30,26 @@ router.post("/register/", body("user_name").exists, body("password").exists, han
   } else return res.status(401).json({error: "user already exists"})
 });
 
-
 router.get("/login/", async ({headers: {mail, password} }, res) => {
-  if(await client.getAsync(mail) !== null){
-    const user = JSON.parse(await client.getAsync(mail));
-    if(user.password === password){
-      const token = tokgen.generate();
-      client.set(token, mail, redis.print);
-      const userToken = JSON.parse(await client.getAsync(token))
-      return res.status(201).json({userToken, debug: user})
-    } else return res.status(401).json({error: "Invalid password"})
-  }
+  if(await client.getAsync(mail) !== null) {
+    if(loggedUserToken === "undefined" && await client.getAsync(loggedUserToken) === null) {
+      const user = JSON.parse(await client.getAsync(mail));
+      if(user.password === password){
+        const token = tokgen.generate();
+        loggedUserToken = token;
+        client.set(token, JSON.stringify(mail), redis.print);
+        return res.status(201).json({ token, debug: user })
+      } else return res.status(401).json({error: "Invalid password"})
+    } else return res.status(403).json({error: "user already logged", loggedUserToken})
+  } return res.status(404).json({error: "user not found"})
+})
+
+router.delete("/logout/", async ({ headers: { token } }, res) =>{
+  if(await client.getAsync(token) !== null) {
+    client.del(token)
+    loggedUserToken="undefined";
+    return res.status(201).json({message: "logout done"})
+  } else return res.status(404).json({error: "user not logged"})
 })
 
 module.exports = router;
