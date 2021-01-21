@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const redis = require("redis");
-const register = require("./routes/register");
+const authUsers = require("./routes/authUsers");
 const products = require("./routes/products");
 
 const app = express();
@@ -15,7 +15,7 @@ client.on("error", function (error) {
 
 app.listen(3000);
 
-app.use("/auth", register);
+app.use("/auth", authUsers);
 app.use("/", products);
 
 console.log("Server started");
