@@ -1,4 +1,4 @@
-[
+export default [
     {
         "id": "A01",
         "name": "aspirapolvere",

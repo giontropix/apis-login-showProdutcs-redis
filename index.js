@@ -1,10 +1,10 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const redis = require("redis");
-const authUsers = require("./routes/authUsers");
-const products = require("./routes/products");
+import express from "express";
+import bodyParser from "body-parser";
+import redis from "redis";
+import { authUsers } from "./routes/authUsers.js";
+import { products } from "./routes/products.js";
 
-const app = express();
+export const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
