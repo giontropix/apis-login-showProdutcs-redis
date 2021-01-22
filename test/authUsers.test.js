@@ -13,24 +13,26 @@ bluebird.promisifyAll(redis.Multi.prototype);
 
 let userToken = "";
 
-const regUser = () =>
+export const regUser = () =>
   request(app).post("/auth/register").set("Accept", "application/json").send({
     mail: "sara@mail.it",
     user_name: "Rosaria",
     password: "sara",
   });
 
-const logUser = () =>
+export const logUser = () =>
   request(app).get("/auth/login").set({
     Accept: "application/json",
     mail: "sara@mail.it",
     password: "sara",
   });
 
-const logOutUser = () =>
+export const logOutUser = (token) =>
   request(app)
     .delete("/auth/logout")
-    .set({ Accept: "application/json", token: userToken });
+    .set({ Accept: "application/json", token });
+
+//TESTING REGISTER USER
 
 describe("Register user", () => {
   before(() => regUser());
@@ -59,18 +61,20 @@ describe("Register user", () => {
         user_name: "Rosaria",
         password: "sara",
       });
-    status.should.equal(401);
+    status.should.equal(403);
     body.should.have.property("error");
   });
 });
 
+//TESTING LOGIN USER
+
 describe("Login user", () => {
   before(() => regUser());
-  after(async () => logOutUser());
+  after(async () => logOutUser(userToken));
   after(() => client.del("sara@mail.it"));
-  after(()=> client.del(userToken))
+  after(() => client.del(userToken));
 
-  it("login", async () => {
+  it("Login the first time", async () => {
     const { status, body } = await logUser();
     status.should.equal(201);
     body.should.have.property("userToken");
@@ -78,9 +82,9 @@ describe("Login user", () => {
     userToken = body.userToken;
   });
 
-  it("login twice", async () => {
+  it("login the second time without logout", async () => {
     const { status, body } = await logUser();
-    status.should.equal(403);
+    status.should.equal(400);
     body.should.have.property("error");
   });
 });
@@ -97,16 +101,17 @@ describe("Logout", () => {
     after(async () => await client.del("sara@mail.it"));
 
     it("Logout successfully", async () => {
-      const { status, body } = await logOutUser();
+      const { status, body } = await logOutUser(userToken);
       status.should.equal(201);
       body.should.not.have.property("error");
+      client.get(body.userToken, (_, rep) => rep).should.equal(false);
     });
   });
 
   describe("Logout error", () => {
     it("Logout if not logged in", async () => {
-      const { status, body } = await logOutUser();
-      status.should.equal(404);
+      const { status, body } = await logOutUser(userToken);
+      status.should.equal(400);
       body.should.have.property("error");
     });
   });

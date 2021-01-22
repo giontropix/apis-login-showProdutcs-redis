@@ -27,7 +27,7 @@ router.post("/register/", body("mail").exists(), body("user_name").exists(), bod
     client.set(mail, JSON.stringify({ user_name, password }), redis.print);
     const user = JSON.parse(await client.getAsync(mail));
     return res.status(201).json({ added_user: {user_name: user.user_name, mail: user.mail }});
-  } else return res.status(401).json({error: "user already exists"})
+  } else return res.status(403).json({error: "user already exists"})
 });
 
 router.get("/login/", async ({headers: {token = userToken, mail, password} }, res) => {
@@ -39,7 +39,7 @@ router.get("/login/", async ({headers: {token = userToken, mail, password} }, re
         client.set(userToken, JSON.stringify(mail), redis.print);
         return res.status(201).json({ userToken, debug: user })
       } else return res.status(401).json({error: "Invalid password"})
-    } else return res.status(403).json({error: "user already logged", userToken})
+    } else return res.status(400).json({error: "user already logged", userToken})
   } return res.status(404).json({error: "user not found"})
 })
 
@@ -48,7 +48,7 @@ router.delete("/logout/", async ({ headers: { token = userToken } }, res) =>{
     client.del(token)
     userToken="undefined";
     return res.status(201).json({message: "logout done"})
-  } else return res.status(404).json({error: "user not logged"})
+  } else return res.status(400).json({error: "user not logged"})
 })
 
 export {router as authUsers}

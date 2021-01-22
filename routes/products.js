@@ -15,7 +15,7 @@ router.get("/products/", async ({ headers: { token = userToken } }, res) => {
     if ((await client.getAsync(token)) !== null) {
       return res.status(200).json(listOfProducts);
     }
-    return res.status(403).json({ error: "user must be logget to see products list" });
+    return res.status(401).json({ error: "user must be logget to see products list" });
   });
 
 router.get("/products/:id", async ({ params: { id }, headers: { token = userToken } }, res) => {
@@ -23,7 +23,7 @@ router.get("/products/:id", async ({ params: { id }, headers: { token = userToke
       const product = listOfProducts.find((product) => product.id === id);
       return res.status(200).json(product);
     }
-    return res.status(403).json({ error: "user must be logget to see products list" });
+    return res.status(401).json({ error: "user must be logget to see products list" });
   });
 
 export {router as products}
