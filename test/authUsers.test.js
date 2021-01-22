@@ -1,13 +1,11 @@
 import chai from "chai";
-chai.should();
 import request from "supertest";
 import { app } from "../index.js";
-
 import redis from "redis";
-const client = redis.createClient();
-
 import bluebird from "bluebird";
 
+const client = redis.createClient();
+chai.should();
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 
@@ -40,9 +38,7 @@ describe("Register user", () => {
   after(() => client.del("sara@mail.it"));
 
   it("Register new user", async () => {
-    const { status, body } = await request(app)
-      .post("/auth/register")
-      .set("Accept", "application/json")
+    const { status, body } = await request(app).post("/auth/register").set("Accept", "application/json")
       .send({
         mail: "saro@mail.it",
         user_name: "Rosario",
@@ -50,17 +46,12 @@ describe("Register user", () => {
       });
     status.should.equal(201);
     body.should.not.have.property("error");
+    body.should.have.property("name")
+    body.should.have.property("mail")
   });
 
   it("Register an user already exists", async () => {
-    const { status, body } = await request(app)
-      .post("/auth/register")
-      .set("Accept", "application/json")
-      .send({
-        mail: "sara@mail.it",
-        user_name: "Rosaria",
-        password: "sara",
-      });
+    const { status, body } = await regUser()
     status.should.equal(403);
     body.should.have.property("error");
   });
