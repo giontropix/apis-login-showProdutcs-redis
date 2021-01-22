@@ -52,4 +52,4 @@ router.delete("/logout/", async ({ headers: { token = userToken } }, res) =>{
   } else return res.status(400).json({error: "user not logged"}) //SE NON TROVO L'UTENTE DA SCOLLEGARE FORSE L'UTENTE NON E' LOGGATO
 })
 
-export {router as authUsers}
+export {router as authUsers} //ESPORTO IL ROUTER COSI' POSSO IMPORTARLO SU INDEX.JS

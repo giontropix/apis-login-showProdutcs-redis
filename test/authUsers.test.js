@@ -11,6 +11,11 @@ bluebird.promisifyAll(redis.Multi.prototype);
 
 let userToken = "";
 
+//FUNZIONI CON ALL'INTERNO DELLE CHIAMATE CHE VERRANNO FATTE SPESSO, ESSENDO DENTRO UN DB TUTTE LE NOSTRE MODIFICHE VERRANNO MEMORIZZATE
+//QUINDI MOLTI TEST HANNO BISOGNO DEI DATI GIA' PRESENTI PER POTER FUNZIONARE, CON BEFORE GESTISCO I DATI CHE DEVONO ESSERCI PRIMA DEI TEST
+//(PER FARE UN LOGIN, PER ESEMPIO, DEVE PRIMA ESSERCI UN UTENTE) E POI ALLA FINE ELIMINO L'UTENTE FITTIZIO CREATO
+
+//REGISTRO UN UTENTE FITTIZIO
 export const regUser = () =>
   request(app).post("/auth/register").set("Accept", "application/json").send({
     mail: "sara@mail.it",
@@ -18,6 +23,7 @@ export const regUser = () =>
     password: "sara",
   });
 
+//LOGGO UN UTENTE FITTIZIO
 export const logUser = () =>
   request(app).get("/auth/login").set({
     Accept: "application/json",
@@ -25,6 +31,7 @@ export const logUser = () =>
     password: "sara",
   });
 
+//SLOGGO UN UTENTE FITTIZIO
 export const logOutUser = (token) =>
   request(app)
     .delete("/auth/logout")
@@ -33,9 +40,11 @@ export const logOutUser = (token) =>
 //TESTING REGISTER USER
 
 describe("Register user", () => {
-  before(() => regUser());
-  after(() => client.del("saro@mail.it"));
-  after(() => client.del("sara@mail.it"));
+
+  before(() => regUser()); //REGISTRO UN UTENTE PER VERIFICARE SE INSERENDOLO DI NUOVO IL SISTEMA MI FERMA
+
+  after(() => client.del("saro@mail.it")); //DOPO I TEST ELIMINO GLI UTENTI FITTIZI CREATI
+  after(() => client.del("sara@mail.it")); //DOPO I TEST ELIMINO GLI UTENTI FITTIZI CREATI
 
   it("Register new user", async () => {
     const { status, body } = await request(app).post("/auth/register").set("Accept", "application/json")
@@ -60,10 +69,12 @@ describe("Register user", () => {
 //TESTING LOGIN USER
 
 describe("Login user", () => {
-  before(() => regUser());
-  after(async () => logOutUser(userToken));
-  after(() => client.del("sara@mail.it"));
-  after(() => client.del(userToken));
+
+  before(() => regUser()); //PRIMA...REGISTRO L'UTENTE
+
+  after(async () => logOutUser(userToken)); //DOPO I TEST...SLOGGO L'UTENTE
+  after(() => client.del("sara@mail.it")); //CANCELLO L'UTENTE DAL DB
+  after(() => client.del(userToken)); //E CANCELLO ANCHE IL RELATIVO TOKEN
 
   it("Login the first time", async () => {
     const { status, body } = await logUser();
@@ -84,18 +95,20 @@ describe("Login user", () => {
 
 describe("Logout", () => {
   describe("Logout user", () => {
-    before(async () => await regUser());
-    before(async () => {
+
+    before(async () => await regUser()); //PRIMA REGISTRO L'UTENTE
+    before(async () => { //DOPO AVERLO REGISTRATO FACCIO IL LOGIN E MEMORIZZO IL TOKEN ASSEGNATO
       const { body } = await logUser();
-      userToken = body.userToken;
+      userToken = body.userToken; //QUI E' DOVE MEMORIZZO IL TOKEN PER SIMULARE IL SUO SALVATAGGIO NEL BROWSER DELL'UTENTE
     });
-    after(async () => await client.del("sara@mail.it"));
+
+    after(async () => await client.del("sara@mail.it")); //FINITI I TEST ELIMINO L'UTENTE FITTIZIO CREATO
 
     it("Logout successfully", async () => {
       const { status, body } = await logOutUser(userToken);
       status.should.equal(201);
       body.should.not.have.property("error");
-      client.get(body.userToken, (_, rep) => rep).should.equal(false);
+      client.get(body.userToken, (_, rep) => rep).should.equal(false); //INSERENDO IL TOKEN CHE IL LOGOUT ELIMINA NON DEVO PIU' TROVARLO NEL DB
     });
   });
 

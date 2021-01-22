@@ -28,4 +28,4 @@ router.get("/products/:id", async ({ params: { id }, headers: { token = userToke
     return res.status(401).json({ error: "user must be logget to see products list" }); //SE NO RISPONDO NEGATIVAMENTE
   });
 
-export {router as products}
+export {router as products} //ESPORTO IL ROUTER COSI' POSSO IMPORTARLO SU INDEX.JS
