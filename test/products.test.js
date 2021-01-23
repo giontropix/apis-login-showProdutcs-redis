@@ -34,8 +34,26 @@ describe("Products", () => {  //I PRODOTTI POSSONO ESSERE VISTI SOLO DA UTENTI L
 
 describe("Products read error", () => { //OVVIAMENTE FACCIO ANCHE UN TEST PER VERIFICARE SE, SENZA LOGIN, SI VEDONO I PRODOTTI
   it("Products without login", async () => {
-    const { status, body } = await request(app).get("/products").set({ Accept: "application/json", token });
+    const { status, body } = await request(app).get("/products").set({ Accept: "application/json", token: "undefined" });
     status.should.be.equal(401);
     body.should.have.property("error");
   });
 });
+
+describe("Update expired token ", () => { //OVVIAMENTE FACCIO ANCHE UN TEST PER VERIFICARE SE, SENZA LOGIN, SI VEDONO I PRODOTTI
+    before(async () => await regUser());  //CREO UN UTENTE FITTIZIO
+    before(async () => {                  //LOGGO L'UTENTE FITTIZIO, SALVANDO IL TOKEN (MI SERVIRA' PER IL LOGOUT)
+        const {body: { userToken },} = await logUser();
+        token = userToken;
+    });
+    before(async()=> await client.del(token)) //ELIMINIAMO IL TOKEN PRIMA DEL TEST, COSI' DA SIMULARE LA SUA SCADENZA
+
+    after(async () => logOutUser(token)); //FACCIO IL LOGOUT
+    after(async () => await client.del("sara@mail.it")); //ELIMINO L'UTENTE FITTIZIO
+
+    it("Visiting products with without a token", async () => {
+      const { status, body } = await request(app).get("/products").set({ Accept: "application/json", token, mail: "sara@mail.it" });
+      status.should.be.equal(200);
+     body.should.have.lengthOf(listOfProducts.length); //LUNGHEZZA LISTA DI RISPOSTA === LUNGHEZZA LISTA ORIGINALE (TUTTI I PRODOTTI INSOMMA)
+    });
+  });

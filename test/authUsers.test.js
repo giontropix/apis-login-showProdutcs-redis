@@ -55,8 +55,8 @@ describe("Register user", () => {
       });
     status.should.equal(201);
     body.should.not.have.property("error");
-    body.should.have.property("name")
-    body.should.have.property("mail")
+    body.user.should.have.property("name")
+    body.user.should.have.property("mail")
   });
 
   it("Register an user already exists", async () => {
