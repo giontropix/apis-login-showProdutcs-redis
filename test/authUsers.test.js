@@ -27,6 +27,7 @@ export const regUser = () =>
 export const logUser = () =>
   request(app).get("/auth/login").set({
     Accept: "application/json",
+    token: userToken,
     mail: "sara@mail.it",
     password: "sara",
   });
@@ -81,7 +82,7 @@ describe("Login user", () => {
     status.should.equal(201);
     body.should.have.property("userToken");
     body.should.not.have.property("error");
-    userToken = body.userToken;
+    userToken = body.userToken; //AGGIORNO IL VALORE DEL TOKEN DELL'UTENTE SECONDO QUELLO CHDE E' STATO GENERATO DAL SISTEMA
   });
 
   it("login the second time without logout", async () => {
