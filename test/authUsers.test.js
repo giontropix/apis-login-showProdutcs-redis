@@ -3,13 +3,12 @@ import request from "supertest";
 import { app } from "../index.js";
 import redis from "redis";
 import bluebird from "bluebird";
+import {userToken, setUserToken} from "../index.js"
 
 const client = redis.createClient();
 chai.should();
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
-
-let userToken = "";
 
 //FUNZIONI CON ALL'INTERNO DELLE CHIAMATE CHE VERRANNO FATTE SPESSO, ESSENDO DENTRO UN DB TUTTE LE NOSTRE MODIFICHE VERRANNO MEMORIZZATE
 //QUINDI MOLTI TEST HANNO BISOGNO DEI DATI GIA' PRESENTI PER POTER FUNZIONARE, CON BEFORE GESTISCO I DATI CHE DEVONO ESSERCI PRIMA DEI TEST
@@ -56,7 +55,7 @@ describe("Register user", () => {
       });
     status.should.equal(201);
     body.should.not.have.property("error");
-    body.user.should.have.property("name")
+    body.user.should.have.property("user_name")
     body.user.should.have.property("mail")
   });
 
@@ -75,14 +74,13 @@ describe("Login user", () => {
 
   after(async () => logOutUser(userToken)); //DOPO I TEST...SLOGGO L'UTENTE
   after(() => client.del("sara@mail.it")); //CANCELLO L'UTENTE DAL DB
-  after(() => client.del(userToken)); //E CANCELLO ANCHE IL RELATIVO TOKEN
 
   it("Login the first time", async () => {
     const { status, body } = await logUser();
     status.should.equal(201);
-    body.should.have.property("userToken");
+    body.should.have.property("token");
     body.should.not.have.property("error");
-    userToken = body.userToken; //AGGIORNO IL VALORE DEL TOKEN DELL'UTENTE SECONDO QUELLO CHDE E' STATO GENERATO DAL SISTEMA
+    setUserToken(body.token); //AGGIORNO IL VALORE DEL TOKEN DELL'UTENTE SECONDO QUELLO CHDE E' STATO GENERATO DAL SISTEMA
   });
 
   it("login the second time without logout", async () => {
@@ -99,8 +97,8 @@ describe("Logout", () => {
 
     before(async () => await regUser()); //PRIMA REGISTRO L'UTENTE
     before(async () => { //DOPO AVERLO REGISTRATO FACCIO IL LOGIN E MEMORIZZO IL TOKEN ASSEGNATO
-      const { body } = await logUser();
-      userToken = body.userToken; //QUI E' DOVE MEMORIZZO IL TOKEN PER SIMULARE IL SUO SALVATAGGIO NEL BROWSER DELL'UTENTE
+      const { body: {token} } = await logUser();
+      setUserToken(token); //QUI E' DOVE MEMORIZZO IL TOKEN PER SIMULARE IL SUO SALVATAGGIO NEL BROWSER DELL'UTENTE
     });
 
     after(async () => await client.del("sara@mail.it")); //FINITI I TEST ELIMINO L'UTENTE FITTIZIO CREATO
