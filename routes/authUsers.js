@@ -23,7 +23,7 @@ export const handleErrors = (req, res, next) => { //! PENSAVO DI PORTARLO IN IND
 //REGISTRARE UN NUOVO UTENTE
 router.post("/register/", body("mail").exists().isEmail().normalizeEmail(), body("user_name").exists().trim().escape().notEmpty(), body("password").exists().isLength({ min: 4 }), handleErrors, async ({ body: { mail, user_name, password } }, res) => {
   if(await client.getAsync(mail) !== null) return res.status(403).json({error: "user already exists"}) //SE TROVO L'UTENTE CON LA CHIAVE MAIL VUOL DIRE CHE E' GIA' LOGGATO, QUINDI RITORNO CON UN MESSAGGIO D'ERRORE
-  client.set(mail, JSON.stringify({ user_name, password, is_logged: false }), redis.print); //SE NO CREO L'UTENTE COME OGGETTO DEL DB
+  client.set(mail, JSON.stringify({ user_name, password, is_logged: false })); //SE NO CREO L'UTENTE COME OGGETTO DEL DB
   return res.status(201).json({ message: "user successfully registered", user: {user_name, mail} }); //E NE MOSTRO I DATI COME RISPOSTA
   });
 
@@ -39,8 +39,8 @@ router.get("/login/", header("mail").exists().isEmail().normalizeEmail(), header
   if(user.password !== password) return res.status(401).json({error: "Invalid password"})//SE LA PASSWORD INSERITA NON CORRISPONDE ALLA PASSWORD DELL'UTENTE RITORNO CON UN MESSAGGIO D'ERRORE
   setUserToken(tokgen.generate()); // SE SUPERO I CONTROLLI PRECEDENTI GENERO UN TOKEN CHE SIMULO SIA MANDATO AL BROWSER DELL'UTENTE
   setUserMail(mail) //ASSOCIO LA MAIL CHE FITTIZIAMENTE APPARTIENE AL BROWSER DELL'UTENTE ALLA MAIL INSERITA DALL'UTENTE STESSO (CREO UNA SPECIE DI COOKIE)
-  client.set(userToken, JSON.stringify(mail), 'EX', 60, redis.print); //POI CREO UN OGGETTO NEL DB CON CHIAVE TOKEN E VALORE LA MAIL DELL'UTENTE
-  client.set(mail, JSON.stringify({user_name: user.user_name, password, is_logged: true}), redis.print) //RISCRIVO L'UTENTE DICENDO CHE E' LOGGATO
+  client.set(userToken, JSON.stringify(mail), 'EX', 60); //POI CREO UN OGGETTO NEL DB CON CHIAVE TOKEN E VALORE LA MAIL DELL'UTENTE
+  client.set(mail, JSON.stringify({user_name: user.user_name, password, is_logged: true})) //RISCRIVO L'UTENTE DICENDO CHE E' LOGGATO
   return res.status(201).json({ message: "login done", get_user_db: JSON.parse(await client.getAsync(userToken)), token: userToken}) //RITORNO L'UTENTE
   })
 
@@ -49,7 +49,7 @@ router.delete("/logout/", async ({ headers: { token = userToken } }, res) =>{
   const mail = JSON.parse(await client.getAsync(token)) //CERCO IL TOKEN NEL DB
   if(mail === null) return res.status(400).json({error: "user not logged"}) //SE NON TROVO TOKEN REGISTRATI NEL DB L'UTENTE NON E' COLLEGATO, RITORNO CON UN MESSAGGIO D'ERRORE
   const {user_name, password} = JSON.parse(await client.getAsync(mail)); //ALTRIMENTI, POICHE' LA CHIAVE TOKEN IN DB MI TORNA L'EMAIL DELL'UTENTE, USO QUESTA MAIL PER CERCARE L'UTENTE NEL DB
-  client.set(mail, JSON.stringify({user_name, password, is_logged: false}), redis.print); //UNA VOLTA TROVATO, SETTO NEL DB IL SUO STATO IN IS_LOGGED = FALSE
+  client.set(mail, JSON.stringify({user_name, password, is_logged: false})); //UNA VOLTA TROVATO, SETTO NEL DB IL SUO STATO IN IS_LOGGED = FALSE
   client.del(token) //ED INFINE ELIMINO L'OGGETTO NEL DB CON CHIAVE IL TOKEN ASSEGNATO AL LOGIN
   setUserToken(""); //? IMMAGINO CHE FATTO IL LOGOUT ANCHE LA SESSION O IL COOKIE VENGANO CANCELLATI DAL BROWSER DELL'UTENTE?
   setUserMail(""); //? IMMAGINO CHE FATTO IL LOGOUT ANCHE LA SESSION O IL COOKIE VENGANO CANCELLATI DAL BROWSER DELL'UTENTE?

@@ -15,12 +15,12 @@ bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 
 const updateExpiredToken = async ({ headers: { token = userToken, mail = userMail } }, res, next) => { //SE IL TOKEN E' SCADUTO LO RINNOVO
-  if(token && await client.getAsync(token) === null) { //SE C'E' UN TOKEN MA CON QUESTO TOKEN NON TROVIAMO NIENTE...
+  if(token && await client.getAsync(token) === null) { //SE C'E' UN TOKEN MA CON QUESTO TOKEN NEL DB NON TROVIAMO NIENTE...
     if(mail){ //PERO' L'UTENTE SEMBRA UN UTENTE REGISTRATO
       const user = JSON.parse(await client.getAsync(mail)); //RICAVIAMO L'UTENTE CON LA MAIL OTTENUTA
       if(user && user.is_logged){ //SE NONOSTANTE L'ASSENZA DI UN TOKEN L'UTENTE ESISTE IN DB E RISULTA ANCORA LOGGATO
         setUserToken(tokgen.generate()); //GENERO UN NUOVO TOKEN PER L'UTENTE
-        client.set(userToken, JSON.stringify(mail), 'EX', 60, redis.print); //RINNOVA IL TOKEN A NOME DELL'UTENTE
+        client.set(userToken, JSON.stringify(mail), 'EX', 60); //RINNOVA IL TOKEN A NOME DELL'UTENTE
       }
     } else return res.status(401).json({ error: "User must be logged to see products list" });
   }
